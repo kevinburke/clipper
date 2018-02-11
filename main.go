@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
+	"mime"
 	"net/http"
 	"net/http/cookiejar"
 	"net/url"
@@ -16,9 +17,11 @@ import (
 	"time"
 
 	"github.com/kevinburke/rest"
+	pdfcontent "github.com/unidoc/unidoc/pdf/contentstream"
+	pdf "github.com/unidoc/unidoc/pdf/model"
 	"golang.org/x/net/html"
 	"golang.org/x/net/publicsuffix"
-	"golang.org/x/sync/errgroup"
+	"golang.org/x/text/encoding/charmap"
 )
 
 const host = "https://www.clippercard.com"
@@ -296,6 +299,51 @@ func GetCards(r io.Reader) ([]Card, error) {
 var email = "kev@inburke.com"
 var password = "g82N99GCJ37Mdqo"
 
+func extractPDFText(r io.ReadSeeker) ([]string, error) {
+	pdfReader, err := pdf.NewPdfReader(r)
+	if err != nil {
+		return nil, err
+	}
+
+	numPages, err := pdfReader.GetNumPages()
+	if err != nil {
+		return nil, err
+	}
+	pages := make([]string, numPages)
+	decoder := charmap.Windows1252.NewDecoder()
+	for i := 1; i <= numPages; i++ {
+		page, err := pdfReader.GetPage(i)
+		if err != nil {
+			return nil, err
+		}
+		contentStreams, err := page.GetContentStreams()
+		if err != nil {
+			return nil, err
+		}
+		pageContentStr := ""
+
+		// If the value is an array, the effect shall be as if all of the
+		// streams in the array were concatenated, in order, to form a
+		// single stream.
+		for _, cstream := range contentStreams {
+			pageContentStr += cstream + "\n"
+		}
+
+		cstreamParser := pdfcontent.NewContentStreamParser(pageContentStr)
+		txt, err := cstreamParser.ExtractText()
+		if err != nil {
+			return nil, err
+		}
+		s, err := decoder.String(txt)
+		if err != nil {
+			fmt.Printf("Error decoding stream: %q\n", txt)
+			return nil, err
+		}
+		pages[i-1] = strings.TrimSpace(s)
+	}
+	return pages, nil
+}
+
 func main() {
 	jar, err := cookiejar.New(&cookiejar.Options{PublicSuffixList: publicsuffix.List})
 	checkError(err, "creating cookie jar")
@@ -318,6 +366,8 @@ func main() {
 	}
 	viewState, err := findViewState(resp.Body)
 	checkError(err, "finding viewState value")
+	_, discardErr := io.Copy(ioutil.Discard, resp.Body)
+	checkError(discardErr, "reading entire body")
 	closeErr := resp.Body.Close()
 	checkError(closeErr, "closing body")
 
@@ -339,68 +389,67 @@ func main() {
 	req.Header.Set("Accept", "*/*")
 	req.Header.Set("Referer", "https://www.clippercard.com/ClipperCard/loginFrame.jsf")
 	req.Header.Set("Faces-Request", "partial-ajax")
-	resp, err = client.Do(req)
+	resp2, err := client.Do(req)
 	checkError(err, "making login request")
-	if resp.StatusCode != 200 {
-		fmt.Fprintf(os.Stderr, "Bad status: want 200 got %d\n", resp.StatusCode)
-		io.Copy(os.Stderr, resp.Body)
+	if resp2.StatusCode != 200 {
+		fmt.Fprintf(os.Stderr, "Bad status: want 200 got %d\n", resp2.StatusCode)
+		io.Copy(os.Stderr, resp2.Body)
 		os.Exit(2)
 	}
-	dashboardData, err := ioutil.ReadAll(resp.Body)
+	dashboardData, err := ioutil.ReadAll(resp2.Body)
 	checkError(err, "reading response body")
-	closeErr = resp.Body.Close()
+	closeErr = resp2.Body.Close()
 	checkError(closeErr, "closing body")
 	cards, err := GetCards(bytes.NewReader(dashboardData))
 	checkError(err, "finding cards")
-	fmt.Printf("cards: %#v\n", cards)
-	viewState, err = findViewState(bytes.NewReader(dashboardData))
+	viewState2, err := findViewState(bytes.NewReader(dashboardData))
 	checkError(err, "finding viewState value")
 	ctx, cancel := context.WithTimeout(context.Background(), 45*time.Second)
 	defer cancel()
-	group, errctx := errgroup.WithContext(ctx)
 	for i := range cards {
-		i := i
+		time.Sleep(2 * time.Second)
 		history := fmt.Sprintf("mainForm:j_idt95:%d:seeHistorySixty", i)
-		group.Go(func() error {
-			data := url.Values{}
-			data.Set("javax.faces.ViewState", viewState)
-			data.Set("mainForm", "mainForm")
-			data.Set("mainForm:password", "")
-			data.Set("mainForm:j_idt65", strconv.Itoa(i))
-			for j := range cards {
-				data.Set(fmt.Sprintf("mainForm:j_idt95:%d:cardName", j), cards[j].Nickname)
-			}
-			data.Set("mainForm:newEcashAmtVal", "0.0")
-			data.Set("mainForm:newParkingPurseAmtVal", "0.0")
-			data.Set(history, history)
-			data.Set("mainForm:username", email)
-			req, err := http.NewRequest("POST", host+"/ClipperCard/dashboard.jsf", strings.NewReader(data.Encode()))
-			if err != nil {
-				return err
-			}
-			req = req.WithContext(errctx)
-			req.Header.Set("User-Agent", userAgent)
-			req.Header.Set("Content-Type", "application/x-www-form-urlencoded;charset=UTF-8")
-			req.Header.Set("Accept", "*/*")
-			req.Header.Set("Referer", "https://www.clippercard.com/ClipperCard/dashboard.jsf")
-			resp, err = client.Do(req)
-			checkError(err, "making data request")
-			if resp.StatusCode != 200 {
-				fmt.Fprintf(os.Stderr, "Bad status: want 200 got %d\n", resp.StatusCode)
-				io.Copy(os.Stderr, resp.Body)
-				os.Exit(2)
-			}
-			f, err := os.Create("data-" + strconv.Itoa(i))
-			checkError(err, "opening data file")
-			if _, err := io.Copy(f, resp.Body); err != nil {
-				return err
-			}
-			closeErr := resp.Body.Close()
-			checkError(closeErr, "closing body")
-			fmt.Println("wrote", f.Name())
-			return nil
-		})
+		data := url.Values{}
+		data.Set("javax.faces.ViewState", viewState2)
+		data.Set("mainForm", "mainForm")
+		data.Set("mainForm:password", "")
+		data.Set("mainForm:j_idt65", strconv.Itoa(i))
+		for j := range cards {
+			data.Set(fmt.Sprintf("mainForm:j_idt95:%d:cardName", j), cards[j].Nickname)
+		}
+		data.Set("mainForm:newEcashAmtVal", "0.0")
+		data.Set("mainForm:newParkingPurseAmtVal", "0.0")
+		data.Set(history, history)
+		data.Set("mainForm:username", email)
+		req, err := http.NewRequest("POST", host+"/ClipperCard/dashboard.jsf", strings.NewReader(data.Encode()))
+		checkError(err, "creating request")
+		req = req.WithContext(ctx)
+		req.Header.Set("User-Agent", userAgent)
+		req.Header.Set("Content-Type", "application/x-www-form-urlencoded;charset=UTF-8")
+		req.Header.Set("Accept", "*/*")
+		req.Header.Set("Referer", "https://www.clippercard.com/ClipperCard/dashboard.jsf")
+		resp, err := client.Do(req)
+		checkError(err, "making data request")
+		if resp.StatusCode != 200 {
+			fmt.Fprintf(os.Stderr, "Bad status: want 200 got %d\n", resp.StatusCode)
+			io.Copy(os.Stderr, resp.Body)
+			os.Exit(2)
+		}
+		ctype := resp.Header.Get("Content-Type")
+		typ, _, err := mime.ParseMediaType(ctype)
+		checkError(err, "reading content type")
+		if typ != "application/pdf" {
+			fmt.Fprintf(os.Stderr, "req %d: Bad response content-type: want pdf got %s\n", i, ctype)
+			resp.Header.Write(os.Stderr)
+			io.Copy(os.Stderr, resp.Body)
+			os.Exit(2)
+		}
+		pdfBody, err := ioutil.ReadAll(resp.Body)
+		checkError(err, "reading response body")
+		pages, err := extractPDFText(bytes.NewReader(pdfBody))
+		checkError(err, "parsing PDF number "+strconv.Itoa(i)+": "+string(pdfBody))
+		closeErr := resp.Body.Close()
+		checkError(closeErr, "closing body")
+		fmt.Println("request", i, "pages", pages)
 	}
-	groupErr := group.Wait()
-	checkError(groupErr, "making parallel requests")
 }

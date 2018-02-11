@@ -1,0 +1,24 @@
+[prune]
+  unused-packages = true
+  go-tests = true
+
+[[constraint]]
+  name = "github.com/kevinburke/rest"
+  version = "1.1.0"
+
+[[constraint]]
+  name = "github.com/unidoc/unidoc"
+  revision = "30cd7a184ac2ea0adf036bc2e2be7eb7906ba0b5"
+  source = "https://github.com/kevinburke/unidoc.git"
+
+[[constraint]]
+  branch = "master"
+  name = "golang.org/x/net"
+
+[[constraint]]
+  branch = "master"
+  name = "golang.org/x/sync"
+
+[[constraint]]
+  branch = "master"
+  name = "golang.org/x/text"

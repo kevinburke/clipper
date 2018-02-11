@@ -2,8 +2,16 @@ package main
 
 import (
 	"bytes"
+	"fmt"
+	"io/ioutil"
 	"testing"
+
+	"github.com/unidoc/unidoc/common"
 )
+
+func init() {
+	common.Log = common.ConsoleLogger{LogLevel: common.LogLevelDebug}
+}
 
 func TestGetViewState(t *testing.T) {
 	val, err := findViewState(bytes.NewReader(loginPage))
@@ -27,4 +35,17 @@ func TestGetCards(t *testing.T) {
 	if cards[0].Nickname != "Personal" {
 		t.Errorf("bad card nickname: %q", cards[0].Nickname)
 	}
+}
+
+func TestGetTransactions(t *testing.T) {
+	data, err := ioutil.ReadFile("testdata/transactions.pdf")
+	if err != nil {
+		t.Fatal(err)
+	}
+	s, err := extractPDFText(bytes.NewReader(data))
+	if err != nil {
+		t.Fatal(err)
+	}
+	fmt.Println("s", s)
+	t.Fail()
 }
