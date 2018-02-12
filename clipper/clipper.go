@@ -221,8 +221,21 @@ func parseLine(text string) ([]string, error) {
 	return parts, nil
 }
 
+var recordHeader = []string{
+	"Date",
+	"Transaction Type",
+	"Location",
+	"Route",
+	"Product",
+	"Debit",
+	"Credit",
+	"Balance",
+}
+
 func getCSV(pages []string) (int, [][]string, error) {
-	records := make([][]string, 0)
+	records := make([][]string, 1)
+	records[0] = make([]string, 8)
+	copy(records[0][:], recordHeader)
 	num := -1
 	for i := range pages {
 		if i == 0 {

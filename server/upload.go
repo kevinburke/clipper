@@ -67,14 +67,14 @@ func csvUpload(w http.ResponseWriter, r *http.Request) {
 			http.Redirect(w, r, r.URL.RequestURI(), http.StatusFound)
 			return
 		}
-		fileData := make([]byte, header.Size)
-		if _, err := io.ReadFull(file, fileData); err != nil {
+		buf := new(bytes.Buffer)
+		if _, err := io.Copy(buf, file); err != nil {
 			// todo: hide the error here?
 			FlashError(w, err.Error(), key)
 			http.Redirect(w, r, "/", http.StatusFound)
 			return
 		}
-		fileDatas[header.Filename] = fileData
+		fileDatas[header.Filename] = buf.Bytes()
 	}
 	if len(fileDatas) != 1 {
 		FlashError(w, "Please provide exactly one file", key)

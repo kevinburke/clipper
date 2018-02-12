@@ -5,12 +5,15 @@ package main
 import (
 	"net/http"
 
+	"github.com/kevinburke/handlers"
 	"github.com/kevinburke/rest"
 	"google.golang.org/appengine"
 	"google.golang.org/appengine/log"
 )
 
 func init() {
+	logger = handlers.Logger
+
 	rest.RegisterHandler(500, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		ctx := appengine.NewContext(r)
 		err := rest.CtxErr(r)

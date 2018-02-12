@@ -25,13 +25,16 @@ func TestGetTransactions(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(records) != 31 {
-		t.Errorf("bad record length: want %d, got %d", 31, len(records))
+	if len(records) != 32 {
+		t.Errorf("bad record length: want %d, got %d", 32, len(records))
 	}
-	if records[0][1] != "Single-tag fare payment" {
-		t.Errorf("first record: want Single-tag, got %q", records[0][1])
+	if records[0][1] != "Transaction Type" {
+		t.Errorf("header record: want Transaction Type, got %q", records[0][1])
 	}
-	if records[30][2] != "Civic Center (BART)" {
+	if records[1][1] != "Single-tag fare payment" {
+		t.Errorf("first record: want Single-tag, got %q", records[1][1])
+	}
+	if records[31][2] != "Civic Center (BART)" {
 		t.Errorf("last record: want Civic Center, got %q", records[31][2])
 	}
 	if num != 1202728442 {

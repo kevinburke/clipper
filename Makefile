@@ -40,3 +40,6 @@ $(JUSTRUN):
 
 watch: | $(JUSTRUN)
 	$(JUSTRUN) --delay=100ms -c 'make assets serve' $(GO_NOASSET_FILES) $(WATCH_TARGETS)
+
+test:
+	go test ./...
