@@ -1,19 +1,33 @@
-POST https://www.clippercard.com/ClipperCard/dashboard.jsf
+# Clipper API
 
-Content-Type: application/x-www-form-urlencoded
+Use this tool to download data about your Cards, as well as transaction history
+for each card.
 
-post parameters:
+## Usage
 
-mainForm	mainForm
-mainForm:username	test@example.com
-mainForm:password
-mainForm:j_idt65	0
-mainForm:j_idt96:0:cardName	Personal
-mainForm:j_idt96:1:cardName	Work
-mainForm:j_idt96:2:cardName
-mainForm:securityQuestion	What+is+your+city+of+birth?
-mainForm:securityAnswer	Los Banos,+CA
-mainForm:newEcashAmtVal	0.0
-mainForm:newParkingPurseAmtVal	0.0
-javax.faces.ViewState	-8062756454309136978:3846873569008336086
-mainForm:j_idt96:0:seeHistorySixty	mainForm:j_idt96:0:seeHistorySixty
+```go
+client := clipper.NewClient("email", "password")
+// You can only access this page twice per day, per Clipper.
+transactions := client.Transactions(context.TODO())
+for card := range transactions {
+	fmt.Println("nickname:", card.Nickname)
+	fmt.Printf("txns: %#v\n", transactions[card].Transactions
+}
+```
+
+## PDF-to-CSV
+
+You can run a server that converts PDF's to CSV files; it's the one that runs at
+[clipper-csv.appspot.com](https://clipper-csv.appspot.com).
+
+```
+make serve
+```
+
+## Install
+
+Use "go get" to install the server.
+
+```
+go get github.com/kevinburke/clipper/...
+```
