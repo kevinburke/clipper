@@ -94,12 +94,15 @@ var _templatesIndexHtml = []byte(`<!doctype html>
       <i>This server does not store or log your private information.</i> We read the PDF you upload to generate a CSV, and send the CSV back to you. The data you upload isn't accessible by anyone else.
     </p>
     <p>
-      If you don't trust this server, you can <a href="https://github.com/kevinburke/clipper-api">download the source code</a> and run the application yourself.
+      If you don't trust this server, you can <a href="https://github.com/kevinburke/clipper">download the source code</a> and run the application yourself.
     </p>
     <p>
       <b>Why can I only get the last 60 days of data?</b> That's all that
       Clipper makes available. You can get one year worth of data if you write
       nicely to Clipper customer support.
+    </p>
+    <p>
+      <b>I'm getting an error hitting the Clipper download page.</b> Clipper only lets you download your transactions twice per day. Sorry.
     </p>
     <p>
       <b>Is there any other way to access my transaction data?</b> No, PDF is
@@ -109,7 +112,7 @@ var _templatesIndexHtml = []byte(`<!doctype html>
       <b>This is cool. Can I hire you?</b> Yes! See my website: <a href="https://burke.services">https://burke.services</a>.
     </p>
     <p>
-      <b>Where can I report errors or ask for features?</b> See the Github repository: <a href="https://github.com/kevinburke/clipper-api">github.com/kevinburke/clipper-api</a>.
+      <b>Where can I report errors or ask for features?</b> See the Github repository: <a href="https://github.com/kevinburke/clipper">github.com/kevinburke/clipper</a>.
     </p>
   </body>
 </html>
@@ -126,7 +129,7 @@ func templatesIndexHtml() (*asset, error) {
 	}
 
 	info := bindataFileInfo{name: "templates/index.html", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
-	a := &asset{bytes: bytes, info: info, digest: [32]uint8{0x21, 0xb2, 0xfa, 0x84, 0x71, 0x3b, 0x4f, 0xf, 0xd8, 0x9c, 0x13, 0xf4, 0x9b, 0x4c, 0xb1, 0xd8, 0xfd, 0x48, 0x45, 0xe8, 0xc4, 0x90, 0x60, 0xe7, 0xa4, 0x19, 0xa6, 0x16, 0xfe, 0x50, 0xd9, 0x69}}
+	a := &asset{bytes: bytes, info: info, digest: [32]uint8{0x1b, 0xcc, 0x6b, 0x90, 0xdc, 0x51, 0x81, 0x2d, 0x8a, 0xb9, 0xb, 0x2a, 0xed, 0x38, 0x7c, 0xcd, 0xbb, 0x78, 0x25, 0x77, 0x72, 0x83, 0x72, 0x59, 0x6e, 0x9, 0x8f, 0xd0, 0x17, 0xb3, 0x30, 0xce}}
 	return a, nil
 }
 
