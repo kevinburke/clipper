@@ -5,7 +5,7 @@ set -eo pipefail
 main() {
     local current_directory="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
     mv "${current_directory}/../vendor" "/tmp/clipper-vendor"
-    pushd "${current_directory}/.."
+    pushd "${current_directory}/../cmd/clipper-server"
         gcloud app deploy 
     popd
     mv "/tmp/clipper-vendor" "${current_directory}/../vendor"
