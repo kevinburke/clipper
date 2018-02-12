@@ -1,4 +1,15 @@
 // Package clipper lets you interact with your Clipper Card data.
+//
+// Example usage:
+//	client := clipper.NewClient("email", "password")
+//	// You can only access this page twice per day, per Clipper.
+//	transactions := client.Transactions(context.TODO())
+//	for card := range transactions {
+//		fmt.Println("nickname:", card.Nickname)
+//		fmt.Printf("txns: %#v\n", transactions[card].Transactions
+//	}
+//
+// A PDF-to-CSV exporter lives at https://clipper-csv.appspot.com.
 package clipper
 
 import (

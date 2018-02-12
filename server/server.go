@@ -1,3 +1,4 @@
+// Package server serves a PDF-to-CSV downloader for Clipper card data.
 package server
 
 import (
@@ -10,8 +11,6 @@ import (
 	"strings"
 	"time"
 
-	// When you copy this project, change this to the name of your project,
-	// otherwise you'll get inexplicable 404's.
 	"github.com/kevinburke/clipper/assets"
 	"github.com/kevinburke/handlers"
 	"github.com/kevinburke/rest"
