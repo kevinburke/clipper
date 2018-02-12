@@ -105,6 +105,7 @@ func NewServeMux() http.Handler {
 		w.Header().Set("Content-Type", "text/html; charset=utf-8")
 		render(w, r, homepageTpl, "homepage", nil)
 	})
+	r.HandleFunc(regexp.MustCompile(`^/csv$`), []string{"POST"}, csvUpload)
 	// Add more routes here. Routes not matched will get a 404 error page.
 	// Call rest.RegisterHandler(404, http.HandlerFunc) to provide your own 404
 	// page instead of the default.
