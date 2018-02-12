@@ -1,16 +1,28 @@
+// Package clipper lets you interact with your Clipper Card data.
 package clipper
 
 import (
 	"bufio"
+	"bytes"
+	"context"
 	"fmt"
 	"io"
+	"io/ioutil"
+	"mime"
+	"net/http"
+	"net/http/cookiejar"
+	"net/url"
+	"os"
 	"strconv"
 	"strings"
+	"sync"
+	"time"
 
 	"github.com/kevinburke/rest"
 	pdfcontent "github.com/unidoc/unidoc/pdf/contentstream"
 	"github.com/unidoc/unidoc/pdf/core"
 	pdf "github.com/unidoc/unidoc/pdf/model"
+	"golang.org/x/net/publicsuffix"
 	"golang.org/x/text/encoding/charmap"
 )
 
@@ -232,11 +244,11 @@ var recordHeader = []string{
 	"Balance",
 }
 
-func getCSV(pages []string) (int, [][]string, error) {
+func getCSV(pages []string) (int64, [][]string, error) {
 	records := make([][]string, 1)
 	records[0] = make([]string, 8)
 	copy(records[0][:], recordHeader)
-	num := -1
+	num := int64(-1)
 	for i := range pages {
 		if i == 0 {
 			bs := bufio.NewScanner(strings.NewReader(pages[i]))
@@ -263,7 +275,7 @@ func getCSV(pages []string) (int, [][]string, error) {
 						continue
 					}
 					var err error
-					num, err = strconv.Atoi(parts[1])
+					num, err = strconv.ParseInt(parts[1], 10, 64)
 					if err != nil {
 						rest.Logger.Warn("error reading account number", "line", line, "text", text)
 					}
@@ -315,7 +327,7 @@ func getCSV(pages []string) (int, [][]string, error) {
 }
 
 type TransactionData struct {
-	AccountNumber int
+	AccountNumber int64
 	Transactions  [][]string
 }
 
@@ -338,4 +350,223 @@ func ParsePDF(r io.ReadSeeker) (TransactionData, error) {
 		AccountNumber: accountNumber,
 		Transactions:  records,
 	}, nil
+}
+
+type Card struct {
+	Nickname            string
+	SerialNumber        int64
+	Status              string
+	Reason              string
+	Type                string
+	CashValueCents      int
+	AutoloadAmountCents int
+}
+
+type Client struct {
+	username, password string
+	client             *http.Client
+
+	loggedIn bool
+	mu       sync.Mutex
+}
+
+func NewClient(username, password string) (*Client, error) {
+	jar, err := cookiejar.New(&cookiejar.Options{PublicSuffixList: publicsuffix.List})
+	if err != nil {
+		return nil, err
+	}
+
+	client := &http.Client{
+		Jar:       jar,
+		Transport: rest.DefaultTransport,
+	}
+	return &Client{
+		username: username,
+		password: password,
+		client:   client,
+	}, nil
+}
+
+const host = "https://www.clippercard.com"
+const userAgent = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10.13; rv:58.0) Gecko/20100101 Firefox/58.0"
+
+func (c *Client) Cards(ctx context.Context) ([]Card, error) {
+	_, cards, err := c.cards(ctx)
+	return cards, err
+}
+
+// caller should hold c.mu
+func (c *Client) login(ctx context.Context) (*http.Response, error) {
+	req, err := http.NewRequest("GET", host+"/ClipperCard/loginFrame.jsf", nil)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	req.Header.Set("User-Agent", userAgent)
+	req.Header.Set("Accept", "*/*")
+	resp, err := c.client.Do(req)
+	if err != nil {
+		return nil, err
+	}
+	if resp.StatusCode != 200 {
+		return nil, fmt.Errorf("could not get Clipper page: want 200 response code, got %d", resp.StatusCode)
+	}
+	viewState, err := findViewState(resp.Body)
+	if err != nil {
+		return nil, err
+	}
+	_, discardErr := io.Copy(ioutil.Discard, resp.Body)
+	if discardErr != nil {
+		return nil, discardErr
+	}
+	closeErr := resp.Body.Close()
+	if closeErr != nil {
+		return nil, closeErr
+	}
+
+	data := url.Values{}
+	data.Set("j_idt13", "j_idt13")
+	data.Set("j_idt13:username", c.username)
+	data.Set("j_idt13:password", c.password)
+	data.Set("javax.faces.behavior.event", "action")
+	data.Set("javax.faces.partial.ajax", "true")
+	data.Set("javax.faces.partial.execute", "j_idt13:submitLogin j_idt13:username j_idt13:password")
+	data.Set("javax.faces.partial.render", "j_idt13:err")
+	data.Set("javax.faces.source", "j_idt13:submitLogin")
+	data.Set("javax.faces.ViewState", viewState)
+
+	req, err = http.NewRequest("POST", host+"/ClipperCard/loginFrame.jsf", strings.NewReader(data.Encode()))
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	req.Header.Set("User-Agent", userAgent)
+	req.Header.Set("Content-Type", "application/x-www-form-urlencoded;charset=UTF-8")
+	req.Header.Set("Accept", "*/*")
+	req.Header.Set("Referer", "https://www.clippercard.com/ClipperCard/loginFrame.jsf")
+	req.Header.Set("Faces-Request", "partial-ajax")
+	resp2, err := c.client.Do(req)
+	if err != nil {
+		return nil, err
+	}
+	if resp2.StatusCode != 200 {
+		return nil, fmt.Errorf("could not login: want 200 response code, got %d", resp2.StatusCode)
+	}
+	c.loggedIn = true
+	return resp2, nil
+}
+
+func (c *Client) dashboard(ctx context.Context) (*http.Response, error) {
+	req, err := http.NewRequest("GET", host+"/ClipperCard/dashboard.jsf", nil)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	req.Header.Set("User-Agent", userAgent)
+	req.Header.Set("Accept", "*/*")
+	resp, err := c.client.Do(req)
+	if err != nil {
+		return nil, err
+	}
+	if resp.StatusCode != 200 {
+		return nil, fmt.Errorf("could not get dashboard: want 200 response code, got %d", resp.StatusCode)
+	}
+	return resp, nil
+}
+
+func (c *Client) cards(ctx context.Context) (string, []Card, error) {
+	var resp *http.Response
+	var err error
+	c.mu.Lock()
+	if c.loggedIn {
+		c.mu.Unlock()
+		resp, err = c.dashboard(ctx)
+		if err != nil {
+			return "", nil, err
+		}
+	} else {
+		resp, err = c.login(ctx)
+		if err != nil {
+			c.mu.Unlock()
+			return "", nil, err
+		}
+		c.mu.Unlock()
+	}
+	dashboardData, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		return "", nil, err
+	}
+	if err := resp.Body.Close(); err != nil {
+		return "", nil, err
+	}
+	viewState2, err := findViewState(bytes.NewReader(dashboardData))
+	if err != nil {
+		return "", nil, err
+	}
+	cards, err := getCards(bytes.NewReader(dashboardData))
+	return viewState2, cards, err
+}
+
+func (c *Client) Transactions(ctx context.Context) (map[Card]TransactionData, error) {
+	viewState, cards, err := c.cards(ctx)
+	if err != nil {
+		return nil, err
+	}
+	result := make(map[Card]TransactionData)
+	ctx, cancel := context.WithTimeout(context.Background(), 45*time.Second)
+	defer cancel()
+	for i := range cards {
+		history := fmt.Sprintf("mainForm:j_idt95:%d:seeHistorySixty", i)
+		data := url.Values{}
+		data.Set("javax.faces.ViewState", viewState)
+		data.Set("mainForm", "mainForm")
+		data.Set("mainForm:password", "")
+		data.Set("mainForm:j_idt65", strconv.Itoa(i))
+		for j := range cards {
+			data.Set(fmt.Sprintf("mainForm:j_idt95:%d:cardName", j), cards[j].Nickname)
+		}
+		data.Set("mainForm:newEcashAmtVal", "0.0")
+		data.Set("mainForm:newParkingPurseAmtVal", "0.0")
+		data.Set(history, history)
+		data.Set("mainForm:username", c.username)
+		req, err := http.NewRequest("POST", host+"/ClipperCard/dashboard.jsf", strings.NewReader(data.Encode()))
+		if err != nil {
+			return nil, err
+		}
+		req = req.WithContext(ctx)
+		req.Header.Set("User-Agent", userAgent)
+		req.Header.Set("Content-Type", "application/x-www-form-urlencoded;charset=UTF-8")
+		req.Header.Set("Accept", "*/*")
+		req.Header.Set("Referer", "https://www.clippercard.com/ClipperCard/dashboard.jsf")
+		resp, err := c.client.Do(req)
+		if err != nil {
+			return nil, err
+		}
+		if resp.StatusCode != 200 {
+			fmt.Fprintf(os.Stderr, "Bad status: want 200 got %d\n", resp.StatusCode)
+			io.Copy(os.Stderr, resp.Body)
+			os.Exit(2)
+		}
+		ctype := resp.Header.Get("Content-Type")
+		typ, _, err := mime.ParseMediaType(ctype)
+		if err != nil {
+			return nil, err
+		}
+		if typ != "application/pdf" {
+			return nil, fmt.Errorf("could not get transactions for card %d: Bad response content-type: want pdf got %s\n", i, ctype)
+		}
+		pdfBody, err := ioutil.ReadAll(resp.Body)
+		if err != nil {
+			return nil, err
+		}
+		csv, err := ParsePDF(bytes.NewReader(pdfBody))
+		if err != nil {
+			return nil, err
+		}
+		if err := resp.Body.Close(); err != nil {
+			return nil, err
+		}
+		result[cards[i]] = csv
+	}
+	return result, nil
 }
