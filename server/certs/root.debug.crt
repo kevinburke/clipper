@@ -1,0 +1,45 @@
+Certificate:
+    Data:
+        Version: 3 (0x2)
+        Serial Number:
+            51:61:e1:fc:a0:e8:83:9c:b1:70:e4:78:1a:41:b3:5c
+    Signature Algorithm: ecdsa-with-SHA256
+        Issuer: O=Acme Co, CN=Root CA
+        Validity
+            Not Before: Feb  7 16:26:07 2018 GMT
+            Not After : Feb  7 16:26:07 2019 GMT
+        Subject: O=Acme Co, CN=Root CA
+        Subject Public Key Info:
+            Public Key Algorithm: id-ecPublicKey
+                Public-Key: (256 bit)
+                pub: 
+                    04:f3:d1:c3:1e:fc:81:cc:d3:53:46:f8:15:8a:a9:
+                    dc:5e:7c:b6:0d:6c:cd:0d:71:c4:ef:43:56:ed:73:
+                    77:71:e1:42:63:67:1b:73:35:29:64:58:cb:40:80:
+                    53:cc:48:53:4b:a9:dd:a3:e6:f3:96:f3:df:7d:2f:
+                    af:8f:53:18:c4
+                ASN1 OID: prime256v1
+                NIST CURVE: P-256
+        X509v3 extensions:
+            X509v3 Key Usage: critical
+                Certificate Sign
+            X509v3 Extended Key Usage: 
+                TLS Web Server Authentication
+            X509v3 Basic Constraints: critical
+                CA:TRUE
+    Signature Algorithm: ecdsa-with-SHA256
+         30:44:02:20:2f:3b:34:b5:fd:40:9c:be:a5:91:85:7f:20:8f:
+         0f:77:cc:35:d2:9b:df:c2:ae:f9:bf:99:83:b7:2f:ed:88:08:
+         02:20:38:85:c1:f3:e5:fa:69:3e:81:82:6c:66:18:0d:1c:f9:
+         1a:18:49:0a:ce:45:f9:3c:2a:7d:80:30:22:9e:dc:df
+-----BEGIN CERTIFICATE-----
+MIIBfTCCASSgAwIBAgIQUWHh/KDog5yxcOR4GkGzXDAKBggqhkjOPQQDAjAkMRAw
+DgYDVQQKEwdBY21lIENvMRAwDgYDVQQDEwdSb290IENBMB4XDTE4MDIwNzE2MjYw
+N1oXDTE5MDIwNzE2MjYwN1owJDEQMA4GA1UEChMHQWNtZSBDbzEQMA4GA1UEAxMH
+Um9vdCBDQTBZMBMGByqGSM49AgEGCCqGSM49AwEHA0IABPPRwx78gczTU0b4FYqp
+3F58tg1szQ1xxO9DVu1zd3HhQmNnG3M1KWRYy0CAU8xIU0up3aPm85bz330vr49T
+GMSjODA2MA4GA1UdDwEB/wQEAwICBDATBgNVHSUEDDAKBggrBgEFBQcDATAPBgNV
+HRMBAf8EBTADAQH/MAoGCCqGSM49BAMCA0cAMEQCIC87NLX9QJy+pZGFfyCPD3fM
+NdKb38Ku+b+Zg7cv7YgIAiA4hcHz5fppPoGCbGYYDRz5GhhJCs5F+TwqfYAwIp7c
+3w==
+-----END CERTIFICATE-----

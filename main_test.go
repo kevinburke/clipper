@@ -64,6 +64,8 @@ func TestGetTransactions(t *testing.T) {
 	if records[31][2] != "Civic Center (BART)" {
 		t.Errorf("last record: want Civic Center, got %q", records[31][2])
 	}
+	//fmt.Printf("%#v\n", records)
+	//t.Fail()
 }
 
 var tabsTests = []struct {
