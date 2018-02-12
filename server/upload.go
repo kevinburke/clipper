@@ -7,7 +7,7 @@ import (
 	"io"
 	"net/http"
 
-	"github.com/kevinburke/clipper-api/clipper"
+	"github.com/kevinburke/clipper"
 	"github.com/kevinburke/handlers"
 	"github.com/kevinburke/nacl"
 	"github.com/kevinburke/rest"

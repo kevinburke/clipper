@@ -16,7 +16,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/kevinburke/clipper-api/clipper"
+	"github.com/kevinburke/clipper"
 	"github.com/kevinburke/rest"
 	"golang.org/x/net/html"
 	"golang.org/x/net/publicsuffix"

@@ -8,7 +8,7 @@ import (
 	"strconv"
 
 	log "github.com/inconshreveable/log15"
-	"github.com/kevinburke/clipper-api/server"
+	"github.com/kevinburke/clipper/server"
 	"github.com/kevinburke/handlers"
 	"github.com/kevinburke/nacl"
 	yaml "gopkg.in/yaml.v2"
