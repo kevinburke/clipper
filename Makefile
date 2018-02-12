@@ -43,3 +43,6 @@ watch: | $(JUSTRUN)
 
 test:
 	go test ./...
+
+release:
+	bump_version minor cmd/clipper-server/main.go
