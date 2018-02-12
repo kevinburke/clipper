@@ -73,14 +73,43 @@ var _templatesIndexHtml = []byte(`<!doctype html>
       </p>
       <p><li>Save the file.</li></p>
       <p><li>Upload it below:</li></p>
+      <form method="POST" action="/csv" enctype="multipart/form-data">
+        <div class="form-group">
+          <label for="csv-upload"><strong>Choose files to upload:</strong></label>
+          <input type="file" id="csv-upload" name="csv" multiple />
+        </div>
+        <button type="submit" class="btn btn-primary">Submit</button>
+      </form>
     </ol>
-    <form method="POST" action="/csv" enctype="multipart/form-data">
-      <div class="form-group">
-        <label for="csv-upload"><strong>Choose files to upload:</strong></label>
-        <input type="file" id="csv-upload" name="csv" multiple />
-      </div>
-      <button type="submit" class="btn btn-primary">Submit</button>
-    </form>
+    <h3>Questions</h3>
+    <p><b>Who are you?</b> I'm a Clipper user and a software consultant. I need to download my Clipper transactions so I can expense them. Manually parsing a PDF is a pain, so I made this.</p>
+
+    <p>
+      <b>Is this safe?</b> In general it's not a great idea to upload personal
+      data to random servers on the Internet. In this case, in the worst case, I
+      could read all of the data in the PDF you upload.
+    </p>
+    <p>
+      <i>This server does not store or log your private information.</i> We read the PDF you upload to generate a CSV, and send the CSV back to you. The data you upload isn't accessible by anyone else.
+    </p>
+    <p>
+      If you don't trust this server, you can <a href="https://github.com/kevinburke/clipper-api">download the source code</a> and run the application yourself.
+    </p>
+    <p>
+      <b>Why can I only get the last 60 days of data?</b> That's all that
+      Clipper makes available. You can get one year worth of data if you write
+      nicely to Clipper customer support.
+    </p>
+    <p>
+      <b>Is there any other way to access my transaction data?</b> No, PDF is
+      the only way Clipper makes it available.
+    </p>
+    <p>
+      <b>This is cool. Can I hire you?</b> Yes! See my website: <a href="https://burke.services">https://burke.services</a>.
+    </p>
+    <p>
+      <b>Where can I report errors or ask for features?</b> See the Github repository: <a href="https://github.com/kevinburke/clipper-api">github.com/kevinburke/clipper-api</a>.
+    </p>
   </body>
 </html>
 `)
@@ -96,7 +125,7 @@ func templatesIndexHtml() (*asset, error) {
 	}
 
 	info := bindataFileInfo{name: "templates/index.html", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
-	a := &asset{bytes: bytes, info: info, digest: [32]uint8{0x0, 0x11, 0xe, 0x82, 0x29, 0xb8, 0xe0, 0x99, 0x19, 0x55, 0x7d, 0x35, 0x83, 0x33, 0x72, 0x86, 0x84, 0x2a, 0x68, 0x27, 0x2, 0x5, 0xd7, 0x8b, 0xac, 0x8e, 0x75, 0x40, 0x39, 0xd3, 0xb9, 0xe6}}
+	a := &asset{bytes: bytes, info: info, digest: [32]uint8{0xef, 0xa, 0x46, 0x45, 0xa9, 0x45, 0x3a, 0x20, 0x38, 0xcc, 0x68, 0xf5, 0xe9, 0xed, 0xfd, 0x77, 0x96, 0x95, 0xbf, 0x64, 0xc, 0xb4, 0x95, 0x1a, 0x90, 0xb7, 0xdd, 0x41, 0xe2, 0x7b, 0x1e, 0xc4}}
 	return a, nil
 }
 
