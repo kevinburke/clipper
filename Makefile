@@ -33,7 +33,7 @@ $(GOPATH)/bin/clipper-server: $(GO_FILES)
 $(GOPATH)/bin/clipper-server:
 
 serve: assets $(GOPATH)/bin/clipper-server
-	go run cmd/clipper-server/main.go
+	$(GOPATH)/bin/clipper-server
 
 $(JUSTRUN):
 	go get -u github.com/jmhodges/justrun

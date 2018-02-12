@@ -8,6 +8,12 @@
   version = "v1.7.0"
 
 [[projects]]
+  name = "github.com/golang/protobuf"
+  packages = ["proto"]
+  revision = "925541529c1fa6821df4e44ce2723319eb2be768"
+  version = "v1.0.0"
+
+[[projects]]
   name = "github.com/inconshreveable/log15"
   packages = [
     ".",
@@ -15,12 +21,6 @@
   ]
   revision = "0decfc6c20d9ca0ad143b0e89dcaa20f810b4fb3"
   version = "v2.13"
-
-[[projects]]
-  name = "github.com/kevinburke/go-html-boilerplate"
-  packages = ["assets"]
-  revision = "ea9f935206214bb0e1d8cea41029921878fb9c3b"
-  version = "0.6"
 
 [[projects]]
   name = "github.com/kevinburke/go.uuid"
@@ -98,6 +98,7 @@
   branch = "master"
   name = "golang.org/x/net"
   packages = [
+    "context",
     "html",
     "html/atom",
     "idna",
@@ -137,6 +138,22 @@
   revision = "4e4a3210bb54bb31f6ab2cdca2edcc0b50c420c1"
 
 [[projects]]
+  name = "google.golang.org/appengine"
+  packages = [
+    ".",
+    "internal",
+    "internal/app_identity",
+    "internal/base",
+    "internal/datastore",
+    "internal/log",
+    "internal/modules",
+    "internal/remote_api",
+    "log"
+  ]
+  revision = "150dc57a1b433e64154302bdc40b6bb8aefa313a"
+  version = "v1.0.0"
+
+[[projects]]
   branch = "v2"
   name = "gopkg.in/yaml.v2"
   packages = ["."]
@@ -145,6 +162,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "55cfced5e7182c7d8490fe35e9f01c01147b6c648140ce89b297979ef319e5b4"
+  inputs-digest = "4ecea2226fda1e7796a975246a2b443eaf396357cbe26be48993995d6cf171c3"
   solver-name = "gps-cdcl"
   solver-version = 1
