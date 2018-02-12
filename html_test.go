@@ -1,10 +1,10 @@
-package main
+package clipper
 
 import (
 	"bytes"
 	"testing"
 
-	"github.com/unidoc/unidoc/common"
+	"github.com/kevinburke/unidoc/common"
 )
 
 func init() {
@@ -23,7 +23,7 @@ func TestGetViewState(t *testing.T) {
 
 func TestGetCards(t *testing.T) {
 	r := bytes.NewReader(dashboard)
-	cards, err := GetCards(r)
+	cards, err := getCards(r)
 	if err != nil {
 		t.Fatal(err)
 	}
