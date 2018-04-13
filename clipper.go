@@ -50,9 +50,9 @@ var positions = []float64{
 }
 
 func findPositionIdx(pos float64) int {
-	if pos < 0 || pos > 1100 {
-		panic(fmt.Sprintf("invalid pos %v", pos))
-	}
+	//if pos < 0 || pos > 1100 {
+	//panic(fmt.Sprintf("invalid pos %v", pos))
+	//}
 	if pos <= positions[0] {
 		return 0
 	}
@@ -158,6 +158,7 @@ func extractText(parser *pdfcontent.ContentStreamParser) (string, error) {
 			for _, obj := range *paramList {
 				switch v := obj.(type) {
 				case *core.PdfObjectString:
+					fmt.Printf("obj: %#v\n", obj)
 					txt += string(*v)
 				case *core.PdfObjectFloat:
 					if *v < -100 {
@@ -211,6 +212,7 @@ func extractPDFText(r io.ReadSeeker) ([]string, error) {
 		// streams in the array were concatenated, in order, to form a
 		// single stream.
 		for _, cstream := range contentStreams {
+			//fmt.Printf("cstream: %#v\n", cstream)
 			pageContentStr += cstream + "\n"
 		}
 
@@ -219,6 +221,7 @@ func extractPDFText(r io.ReadSeeker) ([]string, error) {
 		if err != nil {
 			return nil, err
 		}
+		fmt.Printf("txt: %#v\n", txt)
 		s, err := decoder.String(txt)
 		if err != nil {
 			fmt.Printf("Error decoding stream: %q\n", txt)

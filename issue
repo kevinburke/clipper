@@ -1,0 +1,57 @@
+# trouble extracting text from PDF
+
+I have a PDF that was emailed to me by clippercard.com. It's a version 1.3 PDF.
+When I try to extract the text from it, I get garbage out that looks like this.
+
+```
+!"#$%#&!'($)*'%!("+),(")
+ETDTEDEG00ETHET03L
+0JNJJ0
+%4>KK8:0%3<P
+```
+
+However, if I load the same PDF into Chrome, Mozilla Firefox or Preview.app, the
+document renders correctly, with highlightable and searchable text.
+
+Here's the code I am using to extract the text, more or less the sample from the
+website.
+
+```go
+	pdfReader, err := pdf.NewPdfReader(r)
+	if err != nil {
+		return nil, err
+	}
+
+	numPages, err := pdfReader.GetNumPages()
+	if err != nil {
+		return nil, err
+	}
+	pages := make([]string, numPages)
+	decoder := charmap.Windows1252.NewDecoder()
+	for i := 1; i <= numPages; i++ {
+		page, err := pdfReader.GetPage(i)
+		if err != nil {
+			return nil, err
+		}
+		contentStreams, err := page.GetContentStreams()
+		if err != nil {
+			return nil, err
+		}
+		pageContentStr := ""
+
+		// If the value is an array, the effect shall be as if all of the
+		// streams in the array were concatenated, in order, to form a
+		// single stream.
+		for _, cstream := range contentStreams {
+			//fmt.Printf("cstream: %#v\n", cstream)
+			pageContentStr += cstream + "\n"
+		}
+
+		cstreamParser := pdfcontent.NewContentStreamParser(pageContentStr)
+		txt, err := extractText(cstreamParser)
+		// ...
+	}
+```
+
+I'm not sure the best way to send the PDF to you, it contains my history of
+rides on my Clipper card and I'd rather not have it made public.

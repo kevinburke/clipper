@@ -15,6 +15,7 @@ package model
 import (
 	"errors"
 	"fmt"
+	"reflect"
 	"strings"
 
 	"github.com/unidoc/unidoc/common"
@@ -88,6 +89,7 @@ func (this *PdfPage) Duplicate() *PdfPage {
 // Used in loading existing PDF files.
 // Note that a new container is created (indirect object).
 func (reader *PdfReader) newPdfPageFromDict(p *PdfObjectDictionary) (*PdfPage, error) {
+	fmt.Println("new pdf page from dict")
 	page := NewPdfPage()
 	page.pageDict = p //XXX?
 
@@ -100,6 +102,10 @@ func (reader *PdfReader) newPdfPageFromDict(p *PdfObjectDictionary) (*PdfPage, e
 	if *pType != "Page" {
 		return nil, errors.New("Page dictionary Type != Page")
 	}
+	fmt.Printf("%#v\n", d)
+	fmt.Println("filters", d.Get("Filter"))
+	fmt.Println("contents", d.Get("Contents"), reflect.TypeOf(d.Get("Contents")))
+	fmt.Println("resources", d.Get("Resources"))
 
 	if obj := d.Get("Parent"); obj != nil {
 		page.Parent = obj
@@ -761,6 +767,7 @@ func (this *PdfPage) SetContentStreams(cStreams []string, encoder StreamEncoder)
 
 	// If encoding is not set, use default raw encoder.
 	if encoder == nil {
+		fmt.Println("using raw encoder")
 		encoder = NewRawEncoder()
 	}
 

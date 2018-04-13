@@ -359,6 +359,7 @@ func newMultiEncoderFromInlineImage(inlineImage *ContentStreamInlineImage) (*cor
 			dParams = dict
 		}
 
+		fmt.Println("name", *name)
 		if *name == core.StreamEncodingFilterNameFlate || *name == "Fl" {
 			// XXX: need to separate out the DecodeParms..
 			encoder, err := newFlateEncoderFromInlineImage(inlineImage, dParams)

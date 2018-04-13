@@ -7,7 +7,7 @@ import (
 )
 
 func TestParsePDF(t *testing.T) {
-	data, err := ioutil.ReadFile("testdata/transactions.pdf")
+	data, err := ioutil.ReadFile("testdata/2017-12-clipper-year.pdf")
 	if err != nil {
 		t.Fatal(err)
 	}
