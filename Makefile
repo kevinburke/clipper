@@ -18,7 +18,7 @@ assets/bindata.go: $(WATCH_TARGETS) | $(GO_BINDATA)
 assets: assets/bindata.go
 
 $(GENERATE_TLS_CERT):
-	go get -u github.com/Shyp/generate-tls-cert
+	go get -u github.com/kevinburke/generate-tls-cert
 
 certs/leaf.pem: | $(GENERATE_TLS_CERT)
 	mkdir -p certs
