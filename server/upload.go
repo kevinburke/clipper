@@ -22,19 +22,19 @@ func getSingleValue(w http.ResponseWriter, r *http.Request, key string, emptyOk 
 			return "", false
 		}
 		rest.BadRequest(w, r, &rest.Error{
-			Title:      fmt.Sprintf("Please provide a '%s' parameter", key),
-			ID:         "missing_parameter",
-			Instance:   r.URL.Path,
-			StatusCode: 400,
+			Title:    fmt.Sprintf("Please provide a '%s' parameter", key),
+			ID:       "missing_parameter",
+			Instance: r.URL.Path,
+			Status:   400,
 		})
 		return "", true
 	}
 	if len(vals) > 1 {
 		rest.BadRequest(w, r, &rest.Error{
-			Title:      fmt.Sprintf("Too many '%s' parameters provided", key),
-			ID:         "too_many_parameters",
-			Instance:   r.URL.Path,
-			StatusCode: 400,
+			Title:    fmt.Sprintf("Too many '%s' parameters provided", key),
+			ID:       "too_many_parameters",
+			Instance: r.URL.Path,
+			Status:   400,
 		})
 		return "", true
 	}
