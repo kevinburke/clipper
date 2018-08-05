@@ -70,7 +70,7 @@ func commonMain() (*FileConfig, http.Handler) {
 var DefaultPort = 8540
 
 // The server's Version.
-const Version = "0.3"
+const Version = "0.4"
 
 // FileConfig represents the data in a config file.
 type FileConfig struct {
