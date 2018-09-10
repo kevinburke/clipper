@@ -40,10 +40,6 @@ func commonMain() (*FileConfig, http.Handler) {
 			os.Exit(2)
 		}
 	}
-	// You can use the secret key with secretbox
-	// (godoc.org/github.com/kevinburke/nacl/secretbox/) to generate cookies and
-	// secrets. See flash.go and crypto.go for examples.
-	_ = key
 
 	if c.Port == nil {
 		port, ok := os.LookupEnv("PORT")
@@ -58,7 +54,7 @@ func commonMain() (*FileConfig, http.Handler) {
 			c.Port = &DefaultPort
 		}
 	}
-	mux := server.NewServeMux()
+	mux := server.NewServeMux(key)
 	mux = handlers.UUID(mux)                              // add UUID header
 	mux = handlers.Server(mux, "clipper-server/"+Version) // add Server header
 	mux = handlers.Log(mux)                               // log requests/responses

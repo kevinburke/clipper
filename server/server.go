@@ -13,6 +13,7 @@ import (
 
 	"github.com/kevinburke/clipper/assets"
 	"github.com/kevinburke/handlers"
+	"github.com/kevinburke/nacl"
 	"github.com/kevinburke/rest"
 )
 
@@ -91,9 +92,14 @@ func render(w http.ResponseWriter, r *http.Request, tpl *template.Template, name
 	w.Write(buf.Bytes())
 }
 
+type flashMessage struct {
+	Error   string
+	Success string
+}
+
 // NewServeMux returns a HTTP handler that covers all routes known to the
 // server.
-func NewServeMux() http.Handler {
+func NewServeMux(key nacl.Key) http.Handler {
 	staticServer := &static{
 		modTime: time.Now().UTC(),
 	}
@@ -102,11 +108,8 @@ func NewServeMux() http.Handler {
 	r.Handle(regexp.MustCompile(`(^/static|^/favicon.ico$)`), []string{"GET"}, handlers.GZip(staticServer))
 	r.HandleFunc(regexp.MustCompile(`^/$`), []string{"GET"}, func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "text/html; charset=utf-8")
-		render(w, r, homepageTpl, "homepage", nil)
+		render(w, r, homepageTpl, "homepage", flashMessage{GetFlashError(w, r, key), GetFlashSuccess(w, r, key)})
 	})
-	r.HandleFunc(regexp.MustCompile(`^/csv$`), []string{"POST"}, csvUpload)
-	// Add more routes here. Routes not matched will get a 404 error page.
-	// Call rest.RegisterHandler(404, http.HandlerFunc) to provide your own 404
-	// page instead of the default.
+	r.HandleFunc(regexp.MustCompile(`^/csv$`), []string{"POST"}, csvUpload(key))
 	return r
 }
