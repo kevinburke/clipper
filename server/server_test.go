@@ -11,7 +11,7 @@ import (
 )
 
 func TestServer(t *testing.T) {
-	mux := NewServeMux()
+	mux := NewServeMux(nil)
 	req := httptest.NewRequest("GET", "/", nil)
 	w := httptest.NewRecorder()
 	mux.ServeHTTP(w, req)
@@ -24,7 +24,7 @@ func TestServer(t *testing.T) {
 }
 
 func BenchmarkHomepage(b *testing.B) {
-	mux := NewServeMux()
+	mux := NewServeMux(nil)
 	s := httptest.NewServer(mux)
 	b.ReportAllocs()
 	b.ResetTimer()
