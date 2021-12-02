@@ -11,6 +11,7 @@ import (
 	"github.com/kevinburke/handlers"
 	"github.com/kevinburke/nacl"
 	"github.com/kevinburke/rest"
+	"github.com/kevinburke/rest/resterror"
 )
 
 // getSingleValue returns the single value, or writes a 400 Bad Request to the
@@ -21,7 +22,7 @@ func getSingleValue(w http.ResponseWriter, r *http.Request, key string, emptyOk 
 		if emptyOk {
 			return "", false
 		}
-		rest.BadRequest(w, r, &rest.Error{
+		rest.BadRequest(w, r, &resterror.Error{
 			Title:    fmt.Sprintf("Please provide a '%s' parameter", key),
 			ID:       "missing_parameter",
 			Instance: r.URL.Path,
@@ -30,7 +31,7 @@ func getSingleValue(w http.ResponseWriter, r *http.Request, key string, emptyOk 
 		return "", true
 	}
 	if len(vals) > 1 {
-		rest.BadRequest(w, r, &rest.Error{
+		rest.BadRequest(w, r, &resterror.Error{
 			Title:    fmt.Sprintf("Too many '%s' parameters provided", key),
 			ID:       "too_many_parameters",
 			Instance: r.URL.Path,
@@ -46,7 +47,7 @@ var key nacl.Key
 func csvUpload(key nacl.Key) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		if err := r.ParseMultipartForm(10 * 1024 * 1024); err != nil {
-			rest.BadRequest(w, r, &rest.Error{
+			rest.BadRequest(w, r, &resterror.Error{
 				Title: err.Error(),
 				ID:    "bad_upload",
 			})
