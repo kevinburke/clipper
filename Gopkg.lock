@@ -58,12 +58,16 @@
   version = "0.5"
 
 [[projects]]
-  digest = "1:845499a098466583d495702a2945c19da6b5c6c436397726f00b4da1aee3da2e"
+  digest = "1:8e31213d5cb6fb241317911073f83899cce11f93c9ac814c9d8ed4151f1410d2"
   name = "github.com/kevinburke/rest"
-  packages = ["."]
+  packages = [
+    ".",
+    "restclient",
+    "resterror",
+  ]
   pruneopts = "UT"
-  revision = "54a8b110959553907c102f05f4182840d8f1c92c"
-  version = "2.1"
+  revision = "1fcb8c8e902286848c3f2dda2c432163c79e0604"
+  version = "2.6"
 
 [[projects]]
   digest = "1:b0cd7041706b3b371d9be0ad119c21695cb1c06e9beb934f54de00e6f8625ed4"
@@ -178,7 +182,7 @@
   revision = "cb6730876b985e110843c1842a7a63a63677cf08"
 
 [[projects]]
-  digest = "1:ad8af9dad7e35c508f73dd4289de9a73610b1b8344d7d5315d9877fa381a3550"
+  digest = "1:c907371f7922a2e391f58ff318132ae71fbeab7c88918adaf960a42e2e96d14c"
   name = "google.golang.org/appengine"
   packages = [
     ".",
@@ -192,8 +196,8 @@
     "log",
   ]
   pruneopts = "UT"
-  revision = "b1f26356af11148e710935ed1ac8a7f5702c7612"
-  version = "v1.1.0"
+  revision = "ab4e2d305cf26ae7721eabf654d8f74e0dc7dfe6"
+  version = "v2.0.1"
 
 [[projects]]
   digest = "1:342378ac4dcb378a5448dd723f0784ae519383532f5e70ade24132c4c8693202"

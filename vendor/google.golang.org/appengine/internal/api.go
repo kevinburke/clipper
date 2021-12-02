@@ -3,7 +3,6 @@
 // license that can be found in the LICENSE file.
 
 // +build !appengine
-// +build go1.7
 
 package internal
 
@@ -45,6 +44,7 @@ var (
 	curNamespaceHeader = http.CanonicalHeaderKey("X-AppEngine-Current-Namespace")
 	userIPHeader       = http.CanonicalHeaderKey("X-AppEngine-User-IP")
 	remoteAddrHeader   = http.CanonicalHeaderKey("X-AppEngine-Remote-Addr")
+	devRequestIdHeader = http.CanonicalHeaderKey("X-Appengine-Dev-Request-Id")
 
 	// Outgoing headers.
 	apiEndpointHeader      = http.CanonicalHeaderKey("X-Google-RPC-Service-Endpoint")
@@ -58,8 +58,11 @@ var (
 
 	apiHTTPClient = &http.Client{
 		Transport: &http.Transport{
-			Proxy: http.ProxyFromEnvironment,
-			Dial:  limitDial,
+			Proxy:               http.ProxyFromEnvironment,
+			Dial:                limitDial,
+			MaxIdleConns:        1000,
+			MaxIdleConnsPerHost: 10000,
+			IdleConnTimeout:     90 * time.Second,
 		},
 	}
 
@@ -84,73 +87,98 @@ func apiURL() *url.URL {
 	}
 }
 
-func handleHTTP(w http.ResponseWriter, r *http.Request) {
-	c := &context{
-		req:       r,
-		outHeader: w.Header(),
-		apiURL:    apiURL(),
-	}
-	r = r.WithContext(withContext(r.Context(), c))
-	c.req = r
-
-	stopFlushing := make(chan int)
-
-	// Patch up RemoteAddr so it looks reasonable.
-	if addr := r.Header.Get(userIPHeader); addr != "" {
-		r.RemoteAddr = addr
-	} else if addr = r.Header.Get(remoteAddrHeader); addr != "" {
-		r.RemoteAddr = addr
-	} else {
-		// Should not normally reach here, but pick a sensible default anyway.
-		r.RemoteAddr = "127.0.0.1"
-	}
-	// The address in the headers will most likely be of these forms:
-	//	123.123.123.123
-	//	2001:db8::1
-	// net/http.Request.RemoteAddr is specified to be in "IP:port" form.
-	if _, _, err := net.SplitHostPort(r.RemoteAddr); err != nil {
-		// Assume the remote address is only a host; add a default port.
-		r.RemoteAddr = net.JoinHostPort(r.RemoteAddr, "80")
-	}
-
-	// Start goroutine responsible for flushing app logs.
-	// This is done after adding c to ctx.m (and stopped before removing it)
-	// because flushing logs requires making an API call.
-	go c.logFlusher(stopFlushing)
-
-	executeRequestSafely(c, r)
-	c.outHeader = nil // make sure header changes aren't respected any more
-
-	stopFlushing <- 1 // any logging beyond this point will be dropped
-
-	// Flush any pending logs asynchronously.
-	c.pendingLogs.Lock()
-	flushes := c.pendingLogs.flushes
-	if len(c.pendingLogs.lines) > 0 {
-		flushes++
-	}
-	c.pendingLogs.Unlock()
-	go c.flushLog(false)
-	w.Header().Set(logFlushHeader, strconv.Itoa(flushes))
-
-	// Avoid nil Write call if c.Write is never called.
-	if c.outCode != 0 {
-		w.WriteHeader(c.outCode)
-	}
-	if c.outBody != nil {
-		w.Write(c.outBody)
-	}
+// Middleware wraps an http handler so that it can make GAE API calls
+func Middleware(next http.Handler) http.Handler {
+	return handleHTTPMiddleware(executeRequestSafelyMiddleware(next))
 }
 
-func executeRequestSafely(c *context, r *http.Request) {
-	defer func() {
-		if x := recover(); x != nil {
-			logf(c, 4, "%s", renderPanic(x)) // 4 == critical
-			c.outCode = 500
+func handleHTTPMiddleware(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		c := &context{
+			req:       r,
+			outHeader: w.Header(),
+			apiURL:    apiURL(),
 		}
-	}()
+		r = r.WithContext(withContext(r.Context(), c))
+		c.req = r
 
-	http.DefaultServeMux.ServeHTTP(c, r)
+		stopFlushing := make(chan int)
+
+		// Patch up RemoteAddr so it looks reasonable.
+		if addr := r.Header.Get(userIPHeader); addr != "" {
+			r.RemoteAddr = addr
+		} else if addr = r.Header.Get(remoteAddrHeader); addr != "" {
+			r.RemoteAddr = addr
+		} else {
+			// Should not normally reach here, but pick a sensible default anyway.
+			r.RemoteAddr = "127.0.0.1"
+		}
+		// The address in the headers will most likely be of these forms:
+		//	123.123.123.123
+		//	2001:db8::1
+		// net/http.Request.RemoteAddr is specified to be in "IP:port" form.
+		if _, _, err := net.SplitHostPort(r.RemoteAddr); err != nil {
+			// Assume the remote address is only a host; add a default port.
+			r.RemoteAddr = net.JoinHostPort(r.RemoteAddr, "80")
+		}
+
+		if logToLogservice() {
+			// Start goroutine responsible for flushing app logs.
+			// This is done after adding c to ctx.m (and stopped before removing it)
+			// because flushing logs requires making an API call.
+			go c.logFlusher(stopFlushing)
+		}
+
+		next.ServeHTTP(c, r)
+		c.outHeader = nil // make sure header changes aren't respected any more
+
+		flushed := make(chan struct{})
+		if logToLogservice() {
+			stopFlushing <- 1 // any logging beyond this point will be dropped
+
+			// Flush any pending logs asynchronously.
+			c.pendingLogs.Lock()
+			flushes := c.pendingLogs.flushes
+			if len(c.pendingLogs.lines) > 0 {
+				flushes++
+			}
+			c.pendingLogs.Unlock()
+			go func() {
+				defer close(flushed)
+				// Force a log flush, because with very short requests we
+				// may not ever flush logs.
+				c.flushLog(true)
+			}()
+			w.Header().Set(logFlushHeader, strconv.Itoa(flushes))
+		}
+
+		// Avoid nil Write call if c.Write is never called.
+		if c.outCode != 0 {
+			w.WriteHeader(c.outCode)
+		}
+		if c.outBody != nil {
+			w.Write(c.outBody)
+		}
+		if logToLogservice() {
+			// Wait for the last flush to complete before returning,
+			// otherwise the security ticket will not be valid.
+			<-flushed
+		}
+	})
+}
+
+func executeRequestSafelyMiddleware(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		defer func() {
+			if x := recover(); x != nil {
+				c := w.(*context)
+				logf(c, 4, "%s", renderPanic(x)) // 4 == critical
+				c.outCode = 500
+			}
+		}()
+
+		next.ServeHTTP(w, r)
+	})
 }
 
 func renderPanic(x interface{}) string {
@@ -486,6 +514,9 @@ func Call(ctx netcontext.Context, service, method string, in, out proto.Message)
 	if ticket == "" {
 		ticket = DefaultTicket()
 	}
+	if dri := c.req.Header.Get(devRequestIdHeader); IsDevAppServer() && dri != "" {
+		ticket = dri
+	}
 	req := &remotepb.Request{
 		ServiceName: &service,
 		Method:      &method,
@@ -566,12 +597,17 @@ func logf(c *context, level int64, format string, args ...interface{}) {
 	}
 	s := fmt.Sprintf(format, args...)
 	s = strings.TrimRight(s, "\n") // Remove any trailing newline characters.
-	c.addLogLine(&logpb.UserAppLogLine{
-		TimestampUsec: proto.Int64(time.Now().UnixNano() / 1e3),
-		Level:         &level,
-		Message:       &s,
-	})
-	log.Print(logLevelName[level] + ": " + s)
+	if logToLogservice() {
+		c.addLogLine(&logpb.UserAppLogLine{
+			TimestampUsec: proto.Int64(time.Now().UnixNano() / 1e3),
+			Level:         &level,
+			Message:       &s,
+		})
+	}
+	// Log to stdout if not deployed
+	if !IsSecondGen() {
+		log.Print(logLevelName[level] + ": " + s)
+	}
 }
 
 // flushLog attempts to flush any pending logs to the appserver.
@@ -657,4 +693,10 @@ func (c *context) logFlusher(stop <-chan int) {
 
 func ContextForTesting(req *http.Request) netcontext.Context {
 	return toContext(&context{req: req})
+}
+
+func logToLogservice() bool {
+	// TODO: replace logservice with json structured logs to $LOG_DIR/app.log.json
+	// where $LOG_DIR is /var/log in prod and some tmpdir in dev
+	return os.Getenv("LOG_TO_LOGSERVICE") != "0"
 }
